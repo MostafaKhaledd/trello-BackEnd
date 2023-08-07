@@ -25,6 +25,7 @@ const userSchema = new Schema({
     phone: {
         type: Number,
     },
+    profilePicture: { secure_url: String, public_id: String },
     posts: [{
         type: Types.ObjectId,
         ref: "post"

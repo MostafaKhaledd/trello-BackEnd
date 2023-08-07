@@ -3,6 +3,7 @@ import CryptoJS from "crypto-js";
 import { asyncHandler } from '../../../utils/errorHandling.js';
 import jwt from 'jsonwebtoken';
 import sendEmail from '../../../utils/email.js';
+import cloudinary from '../../../utils/cloudinary.js';
 export const signup = asyncHandler(async (req, res, next) => {
     const { gender, phone, userName, password, email, cPassword } = req.body
     console.log({ gender, phone, userName, password, email, cPassword });
@@ -241,6 +242,20 @@ export const logIn = asyncHandler(async (req, res, next) => {
     console.log(userlogIn);
     return res.status(200).json({ message: "Done", token })
 })
+export const profileImage = asyncHandler(async (req, res, next) => {
+    const user = await userModel.findById(req.user._id)
+    if (user.isOnline == true && user.isDeleted == false && user.confirmEmail == true) {
+        const { secure_url, public_id } = await cloudinary.uploader.upload(req.file.path, { folder: `trello` })
+        const userupdate = await userModel.findOneAndUpdate({ _id: user.id }, { profilePicture: { secure_url, public_id } }, { new: true })
+        return res.status(200).json({ message: "Done", userupdate })
+    }
+    if (user.isDeleted == true) {
+        return next(new Error("this email is deleted please login again", { cause: 401 }))
+    }
+    else {
+        return next(new Error("please login first", { cause: 401 }))
+    }
+})
 export const changePassword = asyncHandler(async (req, res, next) => {
     const { oldPassword, newPassword, cPassword } = req.body
     const user = await userModel.findById(req.user._id)
@@ -265,7 +280,7 @@ export const updateUser = asyncHandler(async (req, res, next) => {
     const { age, userName, phone } = req.body
     const user = await userModel.findById(req.user._id)
     if (user.isOnline == true && user.isDeleted == false && user.confirmEmail == true) {
-        const userupdate = await userModel.findOneAndUpdate({ _id: user.id }, { age, userName, phone })
+        const userupdate = await userModel.findOneAndUpdate({ _id: user.id }, { age, userName, phone }, { new: true })
         console.log(userupdate);
         return res.status(200).json({ message: "Done" })
     }
